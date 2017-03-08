@@ -1,10 +1,11 @@
 ﻿  source.cpp
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(260): warning C4244: 'initializing' : conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(262): warning C4244: 'initializing' : conversion from 'GLint' to 'GLfloat', possible loss of data
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(263): warning C4244: 'initializing' : conversion from 'GLint' to 'GLfloat', possible loss of data
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(292): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(300): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
-c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\volumerendering\volumerendering\source.cpp(309): warning C4244: 'argument' : conversion from 'GLfloat' to 'GLint', possible loss of data
-LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
-glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\VolumeRendering\Debug\vc120.pdb'; linking object as if no debug info
-  VolumeRendering.vcxproj -> C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\VolumeRendering\Debug\VolumeRendering.exe
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(86): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(87): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(89): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(90): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(295): warning C4244: 'initializing' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(297): warning C4244: 'initializing' : conversion from 'GLint' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(298): warning C4244: 'initializing' : conversion from 'GLint' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(352): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
+c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(365): warning C4244: 'argument' : conversion from 'GLfloat' to 'GLint', possible loss of data
+  VolumeRendering.vcxproj -> C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\LearningVolumeRendering\Debug\VolumeRendering.exe

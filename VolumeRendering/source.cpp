@@ -1,6 +1,7 @@
 // GLEW
 #define GLEW_STATIC //use static library
 #include <GL/glew.h> //Manages OpenGL function calls; used to access the modern OpenGL API functions
+
 // GLFW
 #include <GLFW/glfw3.h> //Gives us a window and OpenGL context to render in, and handles keyboard input; OPENGL DOES NOT HANDLE WINDOW CREATION OR INPUT
 #include <SOIL/SOIL.h>
@@ -75,6 +76,37 @@ void validate(GLuint ID, char order){
 	}
 }
 
+double windowWidth =800, windowHeight = 800;
+GLfloat rotateAboutZ = 0, previousRotateAboutZ=0, xposPrevious = 0, xposCurrent;
+GLfloat rotateAboutX = 0, previousRotateAboutX=0, yposPrevious = 0, yposCurrent;
+bool leftButtonState = false;
+	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{	
+	if (leftButtonState){
+		rotateAboutZ=previousRotateAboutZ+(((xpos-xposPrevious)+.01*windowWidth)/(1.02*windowWidth))*2*3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
+		rotateAboutX=previousRotateAboutX+(((ypos-yposPrevious)+.01*windowHeight)/(1.01*windowHeight))*2*3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
+	}
+	xposCurrent = xpos;
+	yposCurrent = ypos;
+	printf("%f %f %f %f \n", xpos, ypos, rotateAboutX, rotateAboutZ);
+}
+	
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{	
+	if(button==0){ //left click
+		if(action){
+			leftButtonState = true;
+			xposPrevious = xposCurrent;
+			yposPrevious = yposCurrent;
+		}
+		else{
+			leftButtonState = false;
+			previousRotateAboutZ=rotateAboutZ;
+			previousRotateAboutX=rotateAboutX;
+		}
+	}
+}
+//typedef void(* GLFWscrollfun)(GLFWwindow *, double, double)
 int main()
 { 		bool simple=false; const int numberOfTextures=22;
 
@@ -248,6 +280,9 @@ int main()
 			glm::vec3 newCenters, oldCenters;
 			int whichToPlot;
 			GLfloat pos;
+
+	glfwSetCursorPosCallback(window, cursor_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	while (!glfwWindowShouldClose(window))
 	{
 		//Checks if any events are triggered and call events
@@ -269,11 +304,40 @@ int main()
 			glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
 			//i==0 ?  glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture1"), i) : glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture2"), i); 
 	//	}
-
-			 glm::mat4 view;
+			
+			// glm::mat4 view;
         glm::mat4 projection;
-        simple ? view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)) : view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+       /*view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+	   view = glm::rotate(view, GLfloat(rotateAboutX), glm::vec3(1.0f, 0.0f, 0.0f));
+	   	   view = glm::rotate(view, GLfloat(rotateAboutZ), glm::vec3(0.0f, 0.0f, 1.0f));*/
+		
         projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+		/*glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
+		glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+		glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+		glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+		*/
+//GLfloat camX = sin(glfwGetTime()) * radius;
+//GLfloat camZ = cos(glfwGetTime()) * radius;
+glm::mat4 view;
+//view = glm::translate(view, glm::vec3(0.0f, 0.0f, 1.0f));
+//		view = glm::rotate(view, GLfloat(rotateAboutX), glm::vec3(1.0f, 0.0f, 0.0f));
+//	   	   view = glm::rotate(view, GLfloat(rotateAboutZ), glm::vec3(0.0f, 0.0f, 1.0f))
+
+//view = glm::lookAt(glm::vec3(sin(rotateAboutZ), 0.0, cos(rotateAboutZ)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+//view = glm::lookAt(glm::vec3(0.0, sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));//
+//rotateAboutZ=3.14159/2;
+if (cos(rotateAboutX)>0){
+view = glm::lookAt(glm::vec3(0,sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+}
+else{
+	view = glm::lookAt(glm::vec3(0,sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+}
+
+//view = glm::lookAt(glm::vec3(0,0,1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+
         // Get their uniform location
         GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
         GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
@@ -282,27 +346,19 @@ int main()
         // Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glBindVertexArray(VAO);
-		for(int i=0; i<numberOfSlices; i++){
-
-			((i == 0 || i == numberOfSlices - 1) ? glBindTexture(GL_TEXTURE_2D, texture[0]) : glBindTexture(GL_TEXTURE_2D, texture[1]));
+		for(int i=0; i<numberOfSlices;i++){//i<numberOfSlices; i++){
 			glm::mat4 trans;
-			if (int(timeValue / 6) % 2 == 1) {
-				//printf("%f %d \n", timeValue, int(timeValue / 3.14159));
-				(int(timeValue / (3.1415926535)) % 2) == 0 ? whichToPlot = i : whichToPlot = (numberOfSlices - 1) - i;
-				simple ? pos = 0.75f - 1.5f* whichToPlot*1.0 / (numberOfSlices - 1) : pos = 0.2f - 0.4f* whichToPlot*1.0 / (numberOfSlices - 1);
-			glBindTexture(GL_TEXTURE_2D, texture[whichToPlot]);
-				trans = glm::rotate(trans, timeValue, glm::vec3(0.0f, 1.0f, 0.0f));
-				trans = glm::translate(trans, glm::vec3(pos, 0.0f, 0.0f));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z));
-				trans = glm::rotate(trans, GLfloat(3.14159 / 2.0), glm::vec3(0.0f, 1.0f, 0.0f));
-			}
-			else{
-					(int(timeValue / (1.5*3.1415926535)) % 2) == 0 ? whichToPlot = i : whichToPlot = (numberOfSlices - 1) - i;
-									simple ? pos = 0.75f - 1.5f* whichToPlot*1.0 / (numberOfSlices - 1) : pos = 0.2f - 0.4f* whichToPlot*1.0 / (numberOfSlices - 1);
-									
-			glBindTexture(GL_TEXTURE_2D, texture[whichToPlot]);
-			//	trans = glm::rotate(trans, GLfloat(timeValue), glm::vec3(1.0f, 0.0f, 0.0f));
-				trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z));
-			} 
+						cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices-i : whichToPlot=i;
+			pos = 0.2f - 0.4f* i*1.0 / (numberOfSlices - 1);
+			glBindTexture(GL_TEXTURE_2D, texture[i]);
+			//	trans = glm::rotate(trans, timeValue, glm::vec3(0.0f, 1.0f, 0.0f));
+			//	trans = glm::translate(trans, glm::vec3(pos, 0.0f, 0.0f));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z));
+			//	trans = glm::rotate(trans, GLfloat(3.14159 / 2.0), glm::vec3(0.0f, 1.0f, 0.0f))
+		trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));		
+			//					trans = glm::rotate(trans, rotateAboutX, glm::vec3(1.0f, 0.0f, 0.0f));				
+		//	glBindTexture(GL_TEXTURE_2D, texture[whichToPlot]);
+			//trans = glm::rotate(trans, GLfloat(timeValue), glm::vec3(1.0f, 0.0f, 0.0f));
+			trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
 			//trans = glm::rotate(trans, GLfloat(3.14159/2.0), glm::vec3(1.0f, 0.0f, 0.0f));
 
 								
@@ -320,4 +376,6 @@ int main()
 
 	glfwTerminate(); //Properly deletes and cleans everything
 	return 0;
+
 }
+
