@@ -13,6 +13,7 @@ c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningope
 c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(332): warning C4244: '=' : conversion from 'double' to 'GLfloat', possible loss of data
 c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(338): warning C4244: 'argument' : conversion from 'GLfloat' to 'GLint', possible loss of data
 c:\users\ackermand\google drive\janelia\scientificcomputing\learning\learningopengl\learningvolumerendering\volumerendering\source.cpp(339): warning C4244: 'argument' : conversion from 'GLfloat' to 'GLint', possible loss of data
+  LINK : C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\LearningVolumeRendering\Debug\VolumeRendering.exe not found or not built by the last incremental link; performing full link
 LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
 glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' was not found with 'glew32s.lib(glew.obj)' or at 'C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\LearningVolumeRendering\Debug\vc120.pdb'; linking object as if no debug info
   VolumeRendering.vcxproj -> C:\Users\ackermand\Google Drive\Janelia\ScientificComputing\learning\learningOpenGL\LearningVolumeRendering\Debug\VolumeRendering.exe
