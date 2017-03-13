@@ -14,6 +14,15 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
 
+#define MAP_3DTEXT( TexIndex ) \
+glTexCoord3f(0.0f, 0.0f, ((float)TexIndex+1.0f)/2.0f);  \
+glVertex3f(-1,-1,TexIndex);\
+glTexCoord3f(1.0f, 0.0f, ((float)TexIndex+1.0f)/2.0f);  \
+glVertex3f(1,-1,TexIndex);\
+glTexCoord3f(1.0f, 1.0f, ((float)TexIndex+1.0f)/2.0f);  \
+glVertex3f(1,1,TexIndex);\
+glTexCoord3f(0.0f, 1.0f, ((float)TexIndex+1.0f)/2.0f);  \
+glVertex3f(-1,1,TexIndex);
 
 
 // Shaders
@@ -83,7 +92,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 	}
 	xposCurrent = xpos;
 	yposCurrent = ypos;
-	//printf("%f %f %f %f \n", xpos, ypos, rotateAboutX, rotateAboutZ);
+	printf("%f %f %f %f \n", xpos, ypos, rotateAboutX, rotateAboutZ);
 }
 
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -193,13 +202,27 @@ int main()
 
 
 	/* WILL BE USING SOIL TO LOAD IMAGE */
-	int imageWidth, imageHeight;
+	int imageWidth=512, imageHeight=512;
 	int numberOfSlices;
 	unsigned char* image;
 	simple ? numberOfSlices = 22 : numberOfSlices = 22;
 	GLuint texture[numberOfTextures]; //Create ID
+	GLuint mu3DTex;
 	glGenTextures(numberOfTextures, texture); //glGenTextures(number of textures (storing them in GLuint array) given as second argument, location to store textures)
+    glGenTextures(1,(GLuint*)&mu3DTex);
 	//glBindTexture(GL_TEXTURE_2D, texture[numberOfSlices]); //bind the texture so that any subsequent commands will be executed on this texutre
+	    // Holds the luminance buffer
+    char* chBuffer = new char[ imageWidth*imageHeight *numberOfTextures ];
+    // Holds the RGBA buffer
+    char* chRGBABuffer = new char[ 4*imageWidth*imageHeight *numberOfTextures ];
+	glBindTexture(GL_TEXTURE_3D, mu3DTex);
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		int pixelCount = 0;
 	for (int i = 0; i <= numberOfTextures - 1; i++){
 		if (simple) {
 			i % 2 == 0 ? image = SOIL_load_image("cylinderTopBottom.jpg", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA) : //loads in the image and stores the value
@@ -216,27 +239,27 @@ int main()
 			std::string var = oss.str();
 			image = SOIL_load_image(var.c_str(), &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA);
 		}
+
+
+
+
 		//glActiveTexture(GL_TEXTURE0+i); //DGA: Activate the texture unit first before binding the texture
-		glBindTexture(GL_TEXTURE_2D, texture[i]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, //specifies texture target (for now, it is a two dimensional texture, as opposed to 1D or 3D)
-			0,               //mipmap stuff, but we'll set to base level which is 0
-			GL_RGBA,          //how we want to store our image (RGB)
-			imageWidth,      //texture width
-			imageHeight,     //texture height
-			0,               //always 0, legacy stuff
-			GL_RGBA,          //(format) loaded RGB values
-			GL_UNSIGNED_BYTE,//(datatype) and stored them as chars
-			image);			 //image data
-		//At this point, texture object has the texture image attached to it
-		//	glGenerateMipmap(GL_TEXTURE_2D); //generates all the required mipmaps for the currently bound texture
-		//free the image
-		SOIL_free_image_data(image);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		 for( int nIndx = 0; nIndx < imageWidth*imageHeight; ++nIndx )
+        {
+            chRGBABuffer[pixelCount*4] = image[nIndx];
+            chRGBABuffer[pixelCount*4+1] = image[nIndx];
+            chRGBABuffer[pixelCount*4+2] = image[nIndx];
+            chRGBABuffer[pixelCount*4+3] = image[nIndx];
+			pixelCount++;
+        }
+		
+		SOIL_free_image_data(image);	
 	}
+	 glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 
+            imageWidth, imageHeight , numberOfTextures, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE,(GLvoid *) chRGBABuffer );
+        glBindTexture( GL_TEXTURE_3D, 0 );
+
 	GLfloat vertices[] = {
 		// Positions          // Colors           // Texture Coords
 		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // Top Right
@@ -286,62 +309,90 @@ int main()
 	glfwSetScrollCallback(window, scroll_callback);
 	while (!glfwWindowShouldClose(window))
 	{
+
+	/*glClear( GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT );
+
+    glEnable( GL_ALPHA_TEST );
+    glAlphaFunc( GL_GREATER, 0.03f );
+
+    glEnable(GL_BLEND);
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+    glMatrixMode( GL_TEXTURE );
+    glLoadIdentity();
+    // Translate and make 0.5f as the center 
+    // (texture co ordinate is from 0 to 1.
+    // so center of rotation has to be 0.5f)
+    glTranslatef( 0.5f, 0.5f, 0.5f );
+    glRotated( 0.0f, 0, 1.0,0 );
+    glTranslatef( -0.5f,-0.5f, -0.5f );
+
+    glEnable(GL_TEXTURE_3D);
+    glBindTexture( GL_TEXTURE_3D,  mu3DTex );
+
+    for ( float fIndx = -1.0f; fIndx <= 1.0f; fIndx+=0.003f )
+    {
+        glBegin(GL_QUADS);
+            MAP_3DTEXT( fIndx );
+        glEnd();
+    }*/
+
 		//Checks if any events are triggered and call events
-		glfwPollEvents();
+		//////glfwPollEvents();
 
-		//Rendering commands here
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Always want to clear the screen at the start of an iteration so that whatever was on the screen isnt there anymore. State setting function
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//Clear the screen with the color we set. State using function (uses the current state to retrieve the clearing color from)
-		// Draw a triangle, updating the uniform color
-		GLfloat timeValue = glfwGetTime(); //Running time (in seconds)
-		/*GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //Vary color*/
-		GLfloat transformLocation = glGetUniformLocation(shaderProgram, "transform"); //Get location of ourColor uniform
-		GLfloat whichDirectionLocation = glGetUniformLocation(shaderProgram, "whichDirection"); //Get location of whichDirection uniform
-				GLfloat alphaFactorLocation = glGetUniformLocation(shaderProgram, "alphaFactor"); //Get location of whichDirection uniform
-		glUseProgram(shaderProgram);
+		////////Rendering commands here
+		//////glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Always want to clear the screen at the start of an iteration so that whatever was on the screen isnt there anymore. State setting function
+		//////glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//Clear the screen with the color we set. State using function (uses the current state to retrieve the clearing color from)
+		//////// Draw a triangle, updating the uniform color
+		//////GLfloat timeValue = glfwGetTime(); //Running time (in seconds)
+		///////*GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //Vary color*/
+		//////GLfloat transformLocation = glGetUniformLocation(shaderProgram, "transform"); //Get location of ourColor uniform
+		//////GLfloat whichDirectionLocation = glGetUniformLocation(shaderProgram, "whichDirection"); //Get location of whichDirection uniform
+		//////		GLfloat alphaFactorLocation = glGetUniformLocation(shaderProgram, "alphaFactor"); //Get location of whichDirection uniform
+		//////glUseProgram(shaderProgram);
 
-		glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
+		//////glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
 
-		// glm::mat4 view;
-		glm::mat4 projection;
-		projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+		//////// glm::mat4 view;
+		//////glm::mat4 projection;
+		//////projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
 
-		glm::mat4 view;
+		//////glm::mat4 view;
 
-		if (cos(rotateAboutX) > 0){
-			printf("up\n");
-			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-		}
-		else{
-			printf("down\n");
-			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-		}
+		//////if (cos(rotateAboutX) > 0){
+		//////	printf("up\n");
+		//////	view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		//////}
+		//////else{
+		//////	printf("down\n");
+		//////	view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+		//////}
 
 
-		// Get their uniform location
-		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-		// Pass the matrices to the shader
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		// Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		glBindVertexArray(VAO);
-		for (int i = 0; i < numberOfSlices; i++){//i<numberOfSlices; i++){
-			glm::mat4 trans;
-			cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices - i : whichToPlot = i;
-			pos = 0.2f - 0.4f* i*1.0 / (numberOfSlices - 1);
-			glBindTexture(GL_TEXTURE_2D, texture[i]);
+		//////// Get their uniform location
+		//////GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		//////GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+		//////// Pass the matrices to the shader
+		//////glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		//////// Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+		//////glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		//////glBindVertexArray(VAO);
+		//////for (int i = 0; i < numberOfSlices; i++){//i<numberOfSlices; i++){
+		//////	glm::mat4 trans;
+		//////	cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices - i : whichToPlot = i;
+		//////	pos = 0.2f - 0.4f* i*1.0 / (numberOfSlices - 1);
+		//////	glBindTexture(GL_TEXTURE_2D, texture[i]);
 
-			trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));
+		//////	trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));
 
-			trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
-			glUniform1f(alphaFactorLocation,alphaFactor);
-			glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans)); //Must use shader first before setting uniform since it sets it on the currently active shader
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //glDrawElements(mode, count of elements (6 vertices in total), type of indices, an offset or pass an index array when not using EBO- but we are so set it to 0); mill use currently bound EBO indices
+		//////	trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
+		//////	glUniform1f(alphaFactorLocation,alphaFactor);
+		//////	glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans)); //Must use shader first before setting uniform since it sets it on the currently active shader
+		//////	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //glDrawElements(mode, count of elements (6 vertices in total), type of indices, an offset or pass an index array when not using EBO- but we are so set it to 0); mill use currently bound EBO indices
 
-		}
-		glBindVertexArray(0);
-
+		//////}
+		//////glBindVertexArray(0);
+		//////
 
 		//Swaps the front and back buffer (where the comands are rendered to)
 		glfwSwapBuffers(window);
