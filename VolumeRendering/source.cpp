@@ -14,13 +14,7 @@
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) //Function to be registered with KeyCallback function
-{
-	// When a user presses the escape key, we set the WindowShouldClose property to true, 
-	// closing the application
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GL_TRUE);
-}
+
 
 // Shaders
 //Starts with version declaration and say we are using core functionality
@@ -42,7 +36,7 @@ const GLchar* vertexShaderSource = "#version 330 core\n"
 "ourTextureCoordinate = textureCoordinate;\n"
 "}\0";
 const GLchar* fragmentShaderSource = "#version 330 core\n"
-"uniform float whichDirection;\n"
+"uniform float whichDirection, alphaFactor;\n"
 "in vec3 ourColor;\n" //Input defined with "in" keyword
 "in vec4 ourPosition;\n"
 "in vec2 ourTextureCoordinate;\n"
@@ -52,7 +46,7 @@ const GLchar* fragmentShaderSource = "#version 330 core\n"
 "void main()\n"
 "{\n"
 "color = texture(ourTexture1,ourTextureCoordinate);\n"//will return 80% first texture, 20% first texture
-"color = vec4(sqrt(color.x), sqrt(color.y), sqrt(color.z),sqrt(sqrt((color.x+color.y+color.z)/3.0)));\n"
+"color = vec4(sqrt(color.x), sqrt(color.y), sqrt(color.z),alphaFactor*sqrt(sqrt((color.x+color.y+color.z)/3.0)));\n"
 "//color.w=(color.x+color.y+color.z)/3.0;\n"
 "}\0";
 
@@ -76,39 +70,57 @@ void validate(GLuint ID, char order){
 	}
 }
 
-double windowWidth =800, windowHeight = 800;
-GLfloat rotateAboutZ = 0, previousRotateAboutZ=0, xposPrevious = 0, xposCurrent;
-GLfloat rotateAboutX = 0, previousRotateAboutX=0, yposPrevious = 0, yposCurrent;
+double windowWidth = 800, windowHeight = 800;
+GLfloat rotateAboutZ = 0, previousRotateAboutZ = 0, xposPrevious = 0, xposCurrent;
+GLfloat rotateAboutX = 0, previousRotateAboutX = 0, yposPrevious = 0, yposCurrent;
+GLfloat cameraRadius = 1; GLfloat alphaFactor=1.0;
 bool leftButtonState = false;
-	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
-{	
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
 	if (leftButtonState){
-		rotateAboutZ=previousRotateAboutZ+(((xpos-xposPrevious)+.01*windowWidth)/(1.02*windowWidth))*2*3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
-		rotateAboutX=previousRotateAboutX+(((ypos-yposPrevious)+.01*windowHeight)/(1.01*windowHeight))*2*3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
+		rotateAboutZ = previousRotateAboutZ + (((xpos - xposPrevious) + .01*windowWidth) / (1.02*windowWidth)) * 2 * 3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
+		rotateAboutX = previousRotateAboutX + (((ypos - yposPrevious) + .01*windowHeight) / (1.01*windowHeight)) * 2 * 3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
 	}
 	xposCurrent = xpos;
 	yposCurrent = ypos;
-	printf("%f %f %f %f \n", xpos, ypos, rotateAboutX, rotateAboutZ);
+	//printf("%f %f %f %f \n", xpos, ypos, rotateAboutX, rotateAboutZ);
 }
-	
+
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{	
-	if(button==0){ //left click
-		if(action){
+{
+	if (button == 0){ //left click
+		if (action){
 			leftButtonState = true;
 			xposPrevious = xposCurrent;
 			yposPrevious = yposCurrent;
 		}
 		else{
 			leftButtonState = false;
-			previousRotateAboutZ=rotateAboutZ;
-			previousRotateAboutX=rotateAboutX;
+			previousRotateAboutZ = rotateAboutZ;
+			previousRotateAboutX = rotateAboutX;
 		}
 	}
 }
+
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{	cameraRadius = cameraRadius - 0.05*yoffset;
+}
+
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) //Function to be registered with KeyCallback function
+{
+	// When a user presses the escape key, we set the WindowShouldClose property to true, 
+	// closing the application
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, GL_TRUE);
+	else if (key==333) alphaFactor = alphaFactor-.05;
+	else if (key==334) alphaFactor = alphaFactor+.05;
+}
+
 //typedef void(* GLFWscrollfun)(GLFWwindow *, double, double)
 int main()
-{ 		bool simple=false; const int numberOfTextures=22;
+{
+	bool simple = false; const int numberOfTextures = 22;
 
 	//First instantiate the GLFW window
 	//Initialize glfw, then start to configure GLFW with glfwWindowHint(option, value to set option equal to)
@@ -119,7 +131,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	
+
 
 	GLFWwindow* window = glfwCreateWindow(800, 800, "LearnOpenGL", nullptr, nullptr);
 	if (window == nullptr)
@@ -150,9 +162,9 @@ int main()
 
 	glfwSetKeyCallback(window, key_callback);  //Actually register the function with the proper callback
 	//	glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		/* VERTEX SHADER */
+	/* VERTEX SHADER */
 	//For OpenGL to use the shader it has to dynamically compile it at runtime. So first we create the vertex shader object
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	//Attach the shader source code to the shader object and compile the shader. glShaderSource(shader object to compile, how many strings we are passing, the address of the source code, NULL)
@@ -183,20 +195,20 @@ int main()
 	/* WILL BE USING SOIL TO LOAD IMAGE */
 	int imageWidth, imageHeight;
 	int numberOfSlices;
-	unsigned char* image; 
-		simple ? numberOfSlices = 22 : numberOfSlices =22;
+	unsigned char* image;
+	simple ? numberOfSlices = 22 : numberOfSlices = 22;
 	GLuint texture[numberOfTextures]; //Create ID
 	glGenTextures(numberOfTextures, texture); //glGenTextures(number of textures (storing them in GLuint array) given as second argument, location to store textures)
 	//glBindTexture(GL_TEXTURE_2D, texture[numberOfSlices]); //bind the texture so that any subsequent commands will be executed on this texutre
-	for(int i=0; i<=numberOfTextures-1; i++){
+	for (int i = 0; i <= numberOfTextures - 1; i++){
 		if (simple) {
 			i % 2 == 0 ? image = SOIL_load_image("cylinderTopBottom.jpg", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA) : //loads in the image and stores the value
 				image = SOIL_load_image("cylinderCrossSection.jpg", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA);
 		}
 		else{
 			std::ostringstream oss;
-			if (i+1<10){
-			oss << "IM-0001-000" << i+1 << ".jpg";
+			if (i + 1 < 10){
+				oss << "IM-0001-000" << i + 1 << ".jpg";
 			}
 			else{
 				oss << "IM-0001-00" << i + 1 << ".jpg";
@@ -207,9 +219,9 @@ int main()
 		//glActiveTexture(GL_TEXTURE0+i); //DGA: Activate the texture unit first before binding the texture
 		glBindTexture(GL_TEXTURE_2D, texture[i]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, //specifies texture target (for now, it is a two dimensional texture, as opposed to 1D or 3D)
 			0,               //mipmap stuff, but we'll set to base level which is 0
 			GL_RGBA,          //how we want to store our image (RGB)
@@ -220,37 +232,25 @@ int main()
 			GL_UNSIGNED_BYTE,//(datatype) and stored them as chars
 			image);			 //image data
 		//At this point, texture object has the texture image attached to it
-	//	glGenerateMipmap(GL_TEXTURE_2D); //generates all the required mipmaps for the currently bound texture
+		//	glGenerateMipmap(GL_TEXTURE_2D); //generates all the required mipmaps for the currently bound texture
 		//free the image
 		SOIL_free_image_data(image);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	GLfloat vertices[] = {
-    // Positions          // Colors           // Texture Coords
-     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // Top Right
-     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // Bottom Right
-    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // Bottom Left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // Top Left 
+		// Positions          // Colors           // Texture Coords
+		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // Top Right
+		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // Bottom Right
+		-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // Bottom Left
+		-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,    // Top Left 
 
-};
+	};
 	GLuint indices[] = {
 		0, 1, 3, //First Triangle
 		1, 2, 3,  //Second Triangle
 
 	};
-	
-	glm::vec3 sliceCenters[] = {
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 0.0f,  0.0f,  0.0f)
-	};
+
 	//create VBO, EBO and VAO etc
 	GLuint VBO, VAO, EBO;
 	glGenBuffers(1, &VBO); //generate vertex buffer object
@@ -277,12 +277,13 @@ int main()
 	//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //Wireframe mode
 	//Game loop so that the window doesnt close
 	float whichDirectionCurrent = 1;
-			glm::vec3 newCenters, oldCenters;
-			int whichToPlot;
-			GLfloat pos;
+	glm::vec3 newCenters, oldCenters;
+	int whichToPlot;
+	GLfloat pos;
 
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 	while (!glfwWindowShouldClose(window))
 	{
 		//Checks if any events are triggered and call events
@@ -296,79 +297,52 @@ int main()
 		/*GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //Vary color*/
 		GLfloat transformLocation = glGetUniformLocation(shaderProgram, "transform"); //Get location of ourColor uniform
 		GLfloat whichDirectionLocation = glGetUniformLocation(shaderProgram, "whichDirection"); //Get location of whichDirection uniform
+				GLfloat alphaFactorLocation = glGetUniformLocation(shaderProgram, "alphaFactor"); //Get location of whichDirection uniform
 		glUseProgram(shaderProgram);
-	
-	//	whichDirectionCurrent = round(sin(timeValue / 2))==0 ? whichDirectionCurrent : round(sin(timeValue / 2));
-	//	glUniform1f(whichDirectionLocation, whichDirectionCurrent); //Must use shader first before setting uniform since it sets it on the currently active shader
-	//	for(int i=1; i<=1; i++){
-			glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
-			//i==0 ?  glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture1"), i) : glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture2"), i); 
-	//	}
-			
-			// glm::mat4 view;
-        glm::mat4 projection;
-       /*view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
-	   view = glm::rotate(view, GLfloat(rotateAboutX), glm::vec3(1.0f, 0.0f, 0.0f));
-	   	   view = glm::rotate(view, GLfloat(rotateAboutZ), glm::vec3(0.0f, 0.0f, 1.0f));*/
-		
-        projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
-		/*glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
-		glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
-		glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-		glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-		*/
-//GLfloat camX = sin(glfwGetTime()) * radius;
-//GLfloat camZ = cos(glfwGetTime()) * radius;
-glm::mat4 view;
-//view = glm::translate(view, glm::vec3(0.0f, 0.0f, 1.0f));
-//		view = glm::rotate(view, GLfloat(rotateAboutX), glm::vec3(1.0f, 0.0f, 0.0f));
-//	   	   view = glm::rotate(view, GLfloat(rotateAboutZ), glm::vec3(0.0f, 0.0f, 1.0f))
 
-//view = glm::lookAt(glm::vec3(sin(rotateAboutZ), 0.0, cos(rotateAboutZ)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-//view = glm::lookAt(glm::vec3(0.0, sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));//
-//rotateAboutZ=3.14159/2;
-if (cos(rotateAboutX)>0){
-view = glm::lookAt(glm::vec3(0,sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-}
-else{
-	view = glm::lookAt(glm::vec3(0,sin(rotateAboutX), cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-}
+		glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
 
-//view = glm::lookAt(glm::vec3(0,0,1.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		// glm::mat4 view;
+		glm::mat4 projection;
+		projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
 
-        // Get their uniform location
-        GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-        GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-        // Pass the matrices to the shader
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glm::mat4 view;
+
+		if (cos(rotateAboutX) > 0){
+			printf("up\n");
+			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		}
+		else{
+			printf("down\n");
+			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+		}
+
+
+		// Get their uniform location
+		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+		// Pass the matrices to the shader
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		// Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glBindVertexArray(VAO);
-		for(int i=0; i<numberOfSlices;i++){//i<numberOfSlices; i++){
+		for (int i = 0; i < numberOfSlices; i++){//i<numberOfSlices; i++){
 			glm::mat4 trans;
-						cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices-i : whichToPlot=i;
+			cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices - i : whichToPlot = i;
 			pos = 0.2f - 0.4f* i*1.0 / (numberOfSlices - 1);
 			glBindTexture(GL_TEXTURE_2D, texture[i]);
-			//	trans = glm::rotate(trans, timeValue, glm::vec3(0.0f, 1.0f, 0.0f));
-			//	trans = glm::translate(trans, glm::vec3(pos, 0.0f, 0.0f));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z));
-			//	trans = glm::rotate(trans, GLfloat(3.14159 / 2.0), glm::vec3(0.0f, 1.0f, 0.0f))
-		trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));		
-			//					trans = glm::rotate(trans, rotateAboutX, glm::vec3(1.0f, 0.0f, 0.0f));				
-		//	glBindTexture(GL_TEXTURE_2D, texture[whichToPlot]);
-			//trans = glm::rotate(trans, GLfloat(timeValue), glm::vec3(1.0f, 0.0f, 0.0f));
-			trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
-			//trans = glm::rotate(trans, GLfloat(3.14159/2.0), glm::vec3(1.0f, 0.0f, 0.0f));
 
-								
+			trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));
+
+			trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
+			glUniform1f(alphaFactorLocation,alphaFactor);
 			glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans)); //Must use shader first before setting uniform since it sets it on the currently active shader
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //glDrawElements(mode, count of elements (6 vertices in total), type of indices, an offset or pass an index array when not using EBO- but we are so set it to 0); mill use currently bound EBO indices
 
 		}
-					glBindVertexArray(0);
+		glBindVertexArray(0);
 
-		
+
 		//Swaps the front and back buffer (where the comands are rendered to)
 		glfwSwapBuffers(window);
 	}
