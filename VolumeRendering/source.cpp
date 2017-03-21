@@ -36,7 +36,8 @@ const GLchar* vertexShaderSource = "#version 330 core\n"
 "ourTextureCoordinate = textureCoordinate;\n"
 "}\0";
 const GLchar* fragmentShaderSource = "#version 330 core\n"
-"uniform float whichDirection, alphaFactor;\n"
+"uniform float whichDirection, alphaFactor, scaleFactorRed, scaleFactorBlue;\n"
+"uniform int isSimple;\n"
 "in vec3 ourColor;\n" //Input defined with "in" keyword
 "in vec4 ourPosition;\n"
 "in vec2 ourTextureCoordinate;\n"
@@ -46,7 +47,8 @@ const GLchar* fragmentShaderSource = "#version 330 core\n"
 "void main()\n"
 "{\n"
 "color = texture(ourTexture1,ourTextureCoordinate);\n"//will return 80% first texture, 20% first texture
-"color = vec4(sqrt(color.x), sqrt(color.y), sqrt(color.z),alphaFactor*sqrt(sqrt((color.x+color.y+color.z)/3.0)));\n"
+"float alpha=scaleFactorRed*color.x+scaleFactorBlue*color.z;\n"
+"if(isSimple==1){color = vec4(sqrt(color.x), sqrt(color.y), sqrt(color.z),alphaFactor*sqrt(sqrt((color.x+color.y+color.z)/3.0)));}else{ color = vec4(sqrt(color.x)*scaleFactorRed, 0, sqrt(color.z)*scaleFactorBlue,alphaFactor*sqrt(sqrt((color.x+color.z)/3.0))) ;}\n"
 "//color.w=(color.x+color.y+color.z)/3.0;\n"
 "}\0";
 
@@ -70,16 +72,23 @@ void validate(GLuint ID, char order){
 	}
 }
 
-double windowWidth = 800, windowHeight = 800;
+double windowWidth = 1600, windowHeight = 1600, divisor;
 GLfloat rotateAboutZ = 0, previousRotateAboutZ = 0, xposPrevious = 0, xposCurrent;
 GLfloat rotateAboutX = 0, previousRotateAboutX = 0, yposPrevious = 0, yposCurrent;
-GLfloat cameraRadius = 1; GLfloat alphaFactor=1.0;
-bool leftButtonState = false;
+GLfloat yposCurrentForDivisor, previousDivisorValue;
+GLfloat cameraRadius = 1; GLfloat scaleFactorRed=1.0, scaleFactorBlue = 1.0, alphaFactor =1.0;
+int whichChannel = 4;
+bool leftButtonState = false, rightButtonState=false;
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	if (leftButtonState){
 		rotateAboutZ = previousRotateAboutZ + (((xpos - xposPrevious) + .01*windowWidth) / (1.02*windowWidth)) * 2 * 3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
 		rotateAboutX = previousRotateAboutX + (((ypos - yposPrevious) + .01*windowHeight) / (1.01*windowHeight)) * 2 * 3.1415926; //1.02 because of border and adding 1.01 so it starts at 9
+	}
+	if (rightButtonState){
+		divisor = previousDivisorValue+1.5*(((ypos - yposCurrentForDivisor) + .01*windowHeight) / (1.01*windowHeight)); //1.02 because of border and adding 1.01 so it starts at 9
+		if (divisor<0.25) divisor=0.25;
+		if (divisor>10) divisor=10;
 	}
 	xposCurrent = xpos;
 	yposCurrent = ypos;
@@ -100,6 +109,16 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 			previousRotateAboutX = rotateAboutX;
 		}
 	}
+	else{ //right click
+		if (action){
+			rightButtonState = true;
+			yposCurrentForDivisor = yposCurrent;
+			previousDivisorValue = divisor;
+		}
+		else{
+			rightButtonState = false;
+		}
+	}
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -113,14 +132,45 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	// closing the application
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-	else if (key==333) alphaFactor = alphaFactor-.05;
-	else if (key==334) alphaFactor = alphaFactor+.05;
+	else if (key == 82) whichChannel = 1;
+	else if (key == 66) whichChannel = 3;
+	else if (key == 84) whichChannel = 4; //transparency/alpha
+	else if (key == 333){
+		if (whichChannel == 1){
+			scaleFactorRed = scaleFactorRed - .05;
+		}
+		else if (whichChannel ==3){
+			scaleFactorBlue = scaleFactorBlue - .05;
+		}
+		else{
+			alphaFactor = alphaFactor - 0.05;
+		}
+		if (alphaFactor < 0) alphaFactor = 0;
+		if (scaleFactorRed < 0) scaleFactorRed = 0;
+		if (scaleFactorBlue < 0) scaleFactorBlue = 0;
+	}
+	else if (key==334){
+		if (whichChannel == 1){
+			scaleFactorRed = scaleFactorRed + .05;
+		}
+		else if (whichChannel ==3){
+			scaleFactorBlue = scaleFactorBlue + .05;
+		}
+		else{
+			alphaFactor = alphaFactor + 0.05;
+		}
+		alphaFactor = alphaFactor + 0.05;
+		if (alphaFactor > 1 ) alphaFactor = 1;
+		if (scaleFactorRed > 1) scaleFactorRed = 1;
+		if (scaleFactorBlue > 1) scaleFactorBlue = 1;
+	}
 }
 
 //typedef void(* GLFWscrollfun)(GLFWwindow *, double, double)
 int main()
 {
-	bool simple = false; const int numberOfTextures = 22;
+	bool isSimple = false; 
+	const int numberOfTextures = 64;
 
 	//First instantiate the GLFW window
 	//Initialize glfw, then start to configure GLFW with glfwWindowHint(option, value to set option equal to)
@@ -133,7 +183,7 @@ int main()
 
 
 
-	GLFWwindow* window = glfwCreateWindow(800, 800, "LearnOpenGL", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(1600, 1600, "LearnOpenGL", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -196,16 +246,12 @@ int main()
 	int imageWidth, imageHeight;
 	int numberOfSlices;
 	unsigned char* image;
-	simple ? numberOfSlices = 22 : numberOfSlices = 22;
+	isSimple ? numberOfSlices = 22 : numberOfSlices = 64;
 	GLuint texture[numberOfTextures]; //Create ID
 	glGenTextures(numberOfTextures, texture); //glGenTextures(number of textures (storing them in GLuint array) given as second argument, location to store textures)
 	//glBindTexture(GL_TEXTURE_2D, texture[numberOfSlices]); //bind the texture so that any subsequent commands will be executed on this texutre
 	for (int i = 0; i <= numberOfTextures - 1; i++){
-		if (simple) {
-			i % 2 == 0 ? image = SOIL_load_image("cylinderTopBottom.jpg", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA) : //loads in the image and stores the value
-				image = SOIL_load_image("cylinderCrossSection.jpg", &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA);
-		}
-		else{
+		if (isSimple) {
 			std::ostringstream oss;
 			if (i + 1 < 10){
 				oss << "IM-0001-000" << i + 1 << ".jpg";
@@ -213,6 +259,12 @@ int main()
 			else{
 				oss << "IM-0001-00" << i + 1 << ".jpg";
 			}
+			std::string var = oss.str();
+			image = SOIL_load_image(var.c_str(), &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA);
+		}
+		else{
+			std::ostringstream oss;
+			oss << "combined_" << i + 1 << ".jpg";
 			std::string var = oss.str();
 			image = SOIL_load_image(var.c_str(), &imageWidth, &imageHeight, 0, SOIL_LOAD_RGBA);
 		}
@@ -284,6 +336,8 @@ int main()
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+	isSimple==1 ? divisor =1 : divisor =2;
+				previousDivisorValue = divisor;
 	while (!glfwWindowShouldClose(window))
 	{
 		//Checks if any events are triggered and call events
@@ -296,8 +350,12 @@ int main()
 		GLfloat timeValue = glfwGetTime(); //Running time (in seconds)
 		/*GLfloat greenValue = (sin(timeValue) / 2) + 0.5; //Vary color*/
 		GLfloat transformLocation = glGetUniformLocation(shaderProgram, "transform"); //Get location of ourColor uniform
+				GLfloat isSimpleLocation = glGetUniformLocation(shaderProgram, "isSimple"); //Get location of ourColor uniform
+				glUniform1i(isSimpleLocation,GLint(isSimple));
 		GLfloat whichDirectionLocation = glGetUniformLocation(shaderProgram, "whichDirection"); //Get location of whichDirection uniform
-				GLfloat alphaFactorLocation = glGetUniformLocation(shaderProgram, "alphaFactor"); //Get location of whichDirection uniform
+		GLfloat alphaFactorLocation = glGetUniformLocation(shaderProgram, "alphaFactor"); //Get location of whichDirection uniform
+		GLfloat scaleFactorRedLocation = glGetUniformLocation(shaderProgram, "scaleFactorRed"); //Get location of whichDirection uniform
+		GLfloat scaleFactorBlueLocation = glGetUniformLocation(shaderProgram, "scaleFactorBlue"); //Get location of whichDirection uniform
 		glUseProgram(shaderProgram);
 
 		glActiveTexture(GL_TEXTURE0); //DGA: Activate the texture unit first before binding the texture
@@ -309,11 +367,9 @@ int main()
 		glm::mat4 view;
 
 		if (cos(rotateAboutX) > 0){
-			printf("up\n");
 			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 		}
 		else{
-			printf("down\n");
 			view = glm::lookAt(glm::vec3(0, cameraRadius*sin(rotateAboutX), cameraRadius*cos(rotateAboutX)), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
 		}
 
@@ -326,19 +382,38 @@ int main()
 		// Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glBindVertexArray(VAO);
-		for (int i = 0; i < numberOfSlices; i++){//i<numberOfSlices; i++){
+		double*  posZ = new double[numberOfSlices];
+		int belowViewIndex=numberOfSlices-1;
+		while (belowViewIndex>0 && (0.2f - 0.4f* belowViewIndex*1.0 / (numberOfSlices - 1))/(divisor)<cameraRadius*cos(rotateAboutX)){
+			belowViewIndex--;
+		}
+		int * plotOrder = new int[numberOfSlices];
+		int plotOrderCount = 0;
+		for (int i = numberOfSlices - 1; i >= belowViewIndex; i--){
+			plotOrder[plotOrderCount] = i;
+			plotOrderCount++;
+		}
+		for(int i=0; i<belowViewIndex; i++){
+			plotOrder[plotOrderCount] = i;
+			plotOrderCount++;
+		}
+		for (int i = 0; i<numberOfSlices; i++){
 			glm::mat4 trans;
-			cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices - i : whichToPlot = i;
-			pos = 0.2f - 0.4f* i*1.0 / (numberOfSlices - 1);
-			glBindTexture(GL_TEXTURE_2D, texture[i]);
-
-			trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));
-
-			trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
-			glUniform1f(alphaFactorLocation,alphaFactor);
-			glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans)); //Must use shader first before setting uniform since it sets it on the currently active shader
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //glDrawElements(mode, count of elements (6 vertices in total), type of indices, an offset or pass an index array when not using EBO- but we are so set it to 0); mill use currently bound EBO indices
-
+			int actualIndex = plotOrder[i];
+			cos(rotateAboutX) < 0 ? whichToPlot = numberOfSlices - actualIndex : whichToPlot = actualIndex;
+			pos = 0.2f - 0.4f* actualIndex*1.0 / (numberOfSlices - 1);
+			pos/=(divisor);
+		//	printf("%d %d %d %f \n", plotOrderCount, actualIndex, belowViewIndex, cameraRadius*cos(rotateAboutX));
+			//if (pos<cameraRadius*cos(rotateAboutX)){
+				glBindTexture(GL_TEXTURE_2D, texture[actualIndex]);
+				trans = glm::rotate(trans, rotateAboutZ, glm::vec3(0.0f, 0.0f, 1.0f));
+				trans = glm::translate(trans, glm::vec3(0.0f, 0.0f, pos));//glm::vec3(-sliceCenters[i].x, -sliceCenters[i].y, -sliceCenters[i].z)); 
+				glUniform1f(alphaFactorLocation, alphaFactor);
+				glUniform1f(scaleFactorRedLocation, scaleFactorRed);
+				glUniform1f(scaleFactorBlueLocation, scaleFactorBlue);
+				glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(trans)); //Must use shader first before setting uniform since it sets it on the currently active shader
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); //glDrawElements(mode, count of elements (6 vertices in total), type of indices, an offset or pass an index array when not using EBO- but we are so set it to 0); mill use currently bound EBO indices
+			//}
 		}
 		glBindVertexArray(0);
 
